@@ -136,90 +136,149 @@
 
 
 
-### 一些拓展技术：.
+### 一些拓展技术：
 
 1. 日志-快照技术：对指定数据集合的一个完全可用的拷贝，然后清空日志
 2. 太落后的follow会舍弃日志，通过快照取代
 3. 当日志大小 达到一个固定大小的时候就创建一次快照。如果这个阈值设置得显著大于期望的快照的大小， 那么快照的磁盘带宽负载就会很小
 4. 是写入快照需要花费一段时间，可以通过写时复制的技术来，这样新的更新就可以在不影响正在写的快照的情况下被接收。
 
-
-
-
+#### 拜占庭和非拜占庭错误
 
 一般地，把出现故障( crash 或 fail-stop，即不响应)但不会伪造信息的情况称为“非拜占庭错误”( non-byzantine fault)或“故障错误”( Crash Fault);
 
 伪造信息恶意响应的情况称为“拜占庭错误”( Byzantine Fault)，对应节点为拜占庭节点。
 
 
-==============状态=================
-所有服务器上的持久状态：（在响应RPC之前更新了稳定存储）
 
-currentTerm:已看到最新的术语服务器（已初始化为0）第一次开机时，频率单调增加）
-votedFor:在当前选举中获得选票的候选人身份术语（如果没有，则为空）
-log[]:日志条目；每个条目都包含状态机的命令，以及领导者接收条目时的术语（第一个索引为1）
+### 状态
 
-所有服务器上的不稳定状态：
-commitIndex:已知要提交的最高日志项的索引（初始化为0，单调递增）
-lastApplied:应用于状态机的最高日志项的索引（初始化为0，单调增加）
+#### 所有服务器上的持久状态：（在响应RPC之前更新了稳定存储）
 
-Volatile state on leaders:（选举后重新启动）
-nextIndex[]:对于每个服务器，要发送到该服务器的下一个日志项的索引（初始化为leader last log index+1）
-matchIndex[]:对于每台服务器，已知要在服务器上复制的最高日志项的索引（初始化为0，单调递增）
+**currentTerm**:已看到最新的术语服务器（已初始化为0）第一次开机时，频率单调增加）
+**votedFor**:在当前选举中获得选票的候选人身份术语（如果没有，则为空）
+**log[]**:日志条目；每个条目都包含状态机的命令，以及领导者接收条目时的术语（第一个索引为1）
 
 
-=========RequestVote RPC【请求投票rpc】=============
-请求参数
-term：候选人任期号（版本号）
-candidateId：申请投票的候选人
-lastLogIndex：候选人最后一个日志条目的索引
-lastLogTerm：候选人最后一条日志对应的任期号（版本号）
-返回结果
-term：当前任期，供候选人自我更新
-voteGranted：true意味着候选人获得了选票
+
+#### 所有服务器上的不稳定状态：
+
+**commitIndex**:已知要提交的最高日志项的索引（初始化为0，单调递增）
+**lastApplied**:应用于状态机的最高日志项的索引（初始化为0，单调增加）
 
 
-=========AppendEntries RPC【附加条目RPC】==============
 
-Arguments【参数，rpc的请求参数】
-term：leader在任期期间的版本号
-leaderId：
-prevLogIndex：紧跟在新日志项之前的日志项索引
-prevLogTerm：上一条日志的所对应的leader的任期号（版本号）
-entries[]：要存储的日志条目（做心跳使用时为空；可能会发送多个以提高效率）
-leaderCommit：leader's commitIndex
+#### Volatile state on leaders:（选举后重新启动）
 
-Results【rpc的请求结果】
-term：currentTerm，用于leader自我更新
-success：如果follower包含与prevLogIndex和prevLogTerm匹配的条目，则为true
+**nextIndex[]**:对于每个服务器，要发送到该服务器的下一个日志项的索引（初始化为leader last log index+1）
+**matchIndex[]**:对于每台服务器，已知要在服务器上复制的最高日志项的索引（初始化为0，单调递增）
 
-========Rules for Servers【服务器规则】========
-所有服务器：
-・如果CommitteIndex>lastApplied:increment lastApplied，则将日志[lastApplied]应用于状态机
-・如果RPC请求或响应包含术语T>currentTerm:set currentTerm=T，则转换为follower（§5.1）
-follower：
-・回应candidates和leader的RPC
-・如果选举超时，没有收到当前leader的通知，也没有给candidates：投票，那么转为candidates：
-candidates：
-・转换为候选人后，开始选举：
-	1.增加当前的任期号（版本号）
-	2.给自己投票
-	3.重置选举计时器
-	4.将RequestVote RPC发送到所有其他服务器
-・如果收到大多数服务器的投票，那么当前candidates成为leader
-・如果从新的leader那里收到AppendEntries RPC，那么他转变为follower
-・如果选举超时：开始新的选举
-leader：
-・当选后：向每台服务器发送初始的空AppendEntries RPC（用作心跳）；在空闲期间重复此操作，以防止选举超时
-・如果从客户端收到命令：将条目附加到本地日志，则在条目应用到状态机后响应
-・如果最后一个日志索引≥follower的nextIndex，那么发送从nextIndex开始的带有日志项的AppendEntries RPC：
-	1.如果成功：更新跟随者的nextIndex和matchIndex
-	2.如果由于日志不一致导致AppendEntries失败：减少nextIndex并重试
-・如果存在一个N，使得N>commitIndex，则大多数匹配索引[i]≥ N、 和log[N]。term ==currentTerm，设置commitIndex=N
 
-====附加====
-选举安全：在给定的任期内，最多可以选出一名领导人
-Leader Append Only：Leader从不覆盖或删除其日志中的条目；它只附加新条目
+
+### RequestVote RPC【请求投票rpc】
+
+#### 请求参数
+
+**term**：候选人任期号（版本号）
+**candidateId**：申请投票的候选人
+**lastLogIndex**：候选人最后一个日志条目的索引
+**lastLogTerm**：候选人最后一条日志对应的任期号（版本号）
+
+
+
+#### 返回结果
+
+**term**：当前任期，供候选人自我更新
+**voteGranted：true**意味着候选人获得了选票
+
+
+
+### AppendEntries RPC【附加条目RPC】
+
+#### Arguments【参数，rpc的请求参数】
+
+**term：leader**在任期期间的版本号
+**leaderId**：
+**prevLogIndex**：紧跟在新日志项之前的日志项索引
+**prevLogTerm**：上一条日志的所对应的leader的任期号（版本号）
+**entries[]**：要存储的日志条目（做心跳使用时为空；可能会发送多个以提高效率）
+**leaderCommit**：leader's commitIndex
+
+
+
+#### Results【rpc的请求结果】
+
+**term**：currentTerm，用于leader自我更新
+**success**：如果follower包含与prevLogIndex和prevLogTerm匹配的条目，则为true
+
+
+
+### Rules for Servers【服务器规则】
+
+#### 所有服务器：
+
+- 如果CommitteIndex>lastApplied:increment lastApplied，则将日志[lastApplied]应用于状态机
+- 如果RPC请求或响应包含术语T>currentTerm:set currentTerm=T，则转换为follower（§5.1）
+
+#### follower：
+
+- 回应candidates和leader的RPC
+- 如果选举超时，没有收到当前leader的通知，也没有给candidates：投票，那么转为candidates：
+
+
+
+#### candidates：
+
+- 转换为候选人后，开始选举：
+
+  1.增加当前的任期号（版本号）
+
+  2.给自己投票
+
+  3.重置选举计时器
+
+  4.将RequestVote RPC发送到所有其他服务器
+
+- 如果收到大多数服务器的投票，那么当前candidates成为leader
+
+- 如果从新的leader那里收到AppendEntries RPC，那么他转变为follower
+
+- 如果选举超时：开始新的选举
+
+
+
+#### leader：
+
+- 当选后：向每台服务器发送初始的空AppendEntries RPC（用作心跳）；在空闲期间重复此操作，以防止选举超时
+
+- 如果从客户端收到命令：将条目附加到本地日志，则在条目应用到状态机后响应
+
+- 如果最后一个日志索引≥follower的nextIndex，那么发送从nextIndex开始的带有日志项的AppendEntries RPC：
+
+  1.如果成功：更新跟随者的nextIndex和matchIndex
+
+  2.如果由于日志不一致导致AppendEntries失败：减少nextIndex并重试
+
+- 如果存在一个N，使得N>commitIndex，则大多数匹配索引[i]≥ N、 和log[N]。term ==currentTerm，设置commitIndex=N
+
+
+
+### 附加
+
+#### 1.选举安全：
+
+在给定的任期内，最多可以选出一名领导人
+
+
+
+#### 2.Leader Append Only：
+
+Leader从不覆盖或删除其日志中的条目；它只附加新条目
 日志匹配：如果两个日志包含具有相同索引和术语的条目，那么在给定索引的所有条目中，日志都是相同的。
-leader完整性：如果日志条目在给定期限内提交，那么该条目将出现在所有较高编号期限的leader日志中
+
+
+
+#### 3.leader完整性：
+
+如果日志条目在给定期限内提交，那么该条目将出现在所有较高编号期限的leader日志中
 状态机安全：如果服务器已将给定索引处的日志条目应用到其状态机，则没有其他服务器会为同一索引应用不同的日志条目
