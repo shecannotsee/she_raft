@@ -35,11 +35,9 @@ class time {
   void start(integer_type milliseconds) {
     std::thread timer([&,milliseconds]() {
       timer_state_ = timer_state::timing;
-      printf("zzz:%d\n", milliseconds);
       std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
       complete_    = true;
       timer_state_ = timer_state::timing_completed;
-      printf("timing over\n");
     });
     timer.detach();
   }
