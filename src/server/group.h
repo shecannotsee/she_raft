@@ -12,7 +12,7 @@ class group {
  public:
   static void start() {
     while (1) {
-      
+      break;
     }
   }
 };
