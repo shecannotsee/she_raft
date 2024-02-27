@@ -31,11 +31,12 @@ class time {
  public:
   time() = default;
 
-  void start(int millisecondss) {
-    std::thread timer([&]() {
+  template <typename integer_type = int>
+  void start(integer_type milliseconds) {
+    std::thread timer([&,milliseconds]() {
       timer_state_ = timer_state::timing;
-      printf("%d\n", millisecondss);
-      std::this_thread::sleep_for(std::chrono::milliseconds(millisecondss));
+      printf("zzz:%d\n", milliseconds);
+      std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
       complete_    = true;
       timer_state_ = timer_state::timing_completed;
       printf("timing over\n");
