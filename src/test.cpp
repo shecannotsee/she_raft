@@ -7,7 +7,7 @@
 
 void she_raft::test::random_test() {
   for (int i = 0; i < 10; i++) {
-    std::cout << she_raft::generate_random_number<int, 150, 300>() << " ";
+    std::cout << she_raft::time::generate_random_number<int, 150, 300>() << " ";
   }
   std::cout << std::endl;
 }
