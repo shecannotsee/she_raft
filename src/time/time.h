@@ -21,32 +21,52 @@ static int generate_random_number() {
   return dist(gen);
 }
 
-template <typename func_t = void, typename... args_t>
+enum class timer_state : unsigned char {
+  idle,
+  timing,
+  timing_completed,
+};
+
 class time {
  public:
-  time(const int milliseconds, func_t&& func, args_t&&... args)
-      : duration(milliseconds), function(std::forward<func_t>(func), std::forward<args_t>(args)...), active(true) {
+  time() = default;
+
+  void start(int millisecondss) {
+    std::thread timer([&]() {
+      timer_state_ = timer_state::timing;
+      printf("%d\n", millisecondss);
+      std::this_thread::sleep_for(std::chrono::milliseconds(millisecondss));
+      complete_    = true;
+      timer_state_ = timer_state::timing_completed;
+      printf("timing over\n");
+    });
+    timer.detach();
   }
 
-  // 开始计时
-  void start() {
-    std::thread([this]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(duration));
-      if (active) {
-        function();
-      }
-    }).detach();
-  }
-
-  // 停止计时
-  void stop() {
-    active = false;
+  bool get_result() {
+    if (complete_)
+      printf("complete == true ");
+    else
+      printf("complete == false ");
+    if (timer_state_ == timer_state::timing)
+      printf("timer_state_ == timer_state::timing ");
+    else if (timer_state_ == timer_state::timing_completed)
+      printf("timer_state_ == timer_state::timing_completed ");
+    else
+      printf("timer_state_ == timer_state::idle ");
+    printf("");
+    if (complete_ == true && timer_state_ == timer_state::timing_completed) {
+      timer_state_ = timer_state::idle;
+      complete_    = false;
+      return true;
+    } else {
+      return false;
+    }
   }
 
  private:
-  int duration;                    // 时间间隔
-  std::function<void()> function;  // 要执行的函数
-  std::atomic<bool> active;        // 计时器是否激活
+  std::atomic<bool> complete_{false};
+  std::atomic<timer_state> timer_state_{timer_state::idle};
 };
 
 }  // namespace she_raft

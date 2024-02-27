@@ -4,6 +4,7 @@
 #include <server/group.h>
 
 #include <iostream>
+#include <thread>
 
 #include "test.h"
 
@@ -14,6 +15,11 @@ int main() {
   std::cout << "Unit testing completed\n";
 
   std::cout << "main\n" << std::endl;
+  std::thread server([]() { group<int, 1>::start(); });
+
+  std::thread client([]() {
+
+  });
 
   return 0;
 }

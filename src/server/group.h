@@ -10,7 +10,11 @@ namespace she_raft {
 template <typename number_type, number_type number_of_servers>
 class group {
  public:
-  static void start();
+  static void start() {
+    while (1) {
+      
+    }
+  }
 };
 
 }  // namespace she_raft

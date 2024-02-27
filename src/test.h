@@ -9,9 +9,11 @@
 
 namespace she_raft::test {
 
+void random_test();
 void time_test();
 
 static void run_test() {
+  random_test();
   time_test();
   std::cout << std::endl;
 }
