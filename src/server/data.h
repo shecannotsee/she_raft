@@ -14,9 +14,9 @@ enum class vote : unsigned char {
   _1,
 };
 
-struct state {
+struct data {
   std::atomic<vote> num{vote::_1};
-  std::atomic<int> version{0};
+  std::atomic<int> term{0};  // version
 };
 
 }  // namespace she_raft::server
