@@ -21,5 +21,8 @@ int main() {
 
   });
 
+  server.join();
+  client.join();
+
   return 0;
 }
