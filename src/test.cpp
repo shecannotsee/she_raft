@@ -16,7 +16,7 @@ void she_raft::test::time_test() {
   time lalala;
   lalala.start(1000);
   for (int i = 0; i < 10; ++i) {
-    std::cout << i+1 << ":";
+    std::cout << i + 1 << ":";
     if (lalala.get_result() == true) {
       std::cout << "Timing complated!\n";
     } else {
