@@ -45,17 +45,6 @@ class time {
   }
 
   bool get_result() {
-    if (complete_)
-      printf("complete == true ");
-    else
-      printf("complete == false ");
-    if (timer_state_ == timer_state::timing)
-      printf("timer_state_ == timer_state::timing ");
-    else if (timer_state_ == timer_state::timing_completed)
-      printf("timer_state_ == timer_state::timing_completed ");
-    else
-      printf("timer_state_ == timer_state::idle ");
-    printf("");
     if (complete_ == true && timer_state_ == timer_state::timing_completed) {
       timer_state_ = timer_state::idle;
       complete_    = false;
