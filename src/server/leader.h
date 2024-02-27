@@ -7,7 +7,9 @@
 
 namespace she_raft::server {
 
-class leader {};
+class leader {
+ public:
+};
 
 }  // namespace she_raft::server
 
