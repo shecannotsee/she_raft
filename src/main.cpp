@@ -15,7 +15,7 @@ int main() {
   std::cout << "Unit testing completed\n";
 
   std::cout << "main\n" << std::endl;
-  std::thread server([]() { group<int, 1>::start(); });
+  std::thread server([]() { start<int, 1>(); });
 
   std::thread client([]() {
 
